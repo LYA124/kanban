@@ -294,19 +294,40 @@ function fv(fields, key) {
 }
 
 // 解析护士排班表 → {year_month: {name: {role, shifts:{day:shift}}}}
+function buildColToDay(records) {
+  const headerRow = records.find(r => fv(r.fields,"姓名")==="姓名" || fv(r.fields,"列1")==="姓名 \\ 日期");
+  if (!headerRow) return {};
+  const colToDay = {};
+  for (const [col, val] of Object.entries(headerRow.fields)) {
+    const day = parseInt(fv({"v":val}, "v") || String(val));
+    if (!isNaN(day) && day >= 1 && day <= 31) colToDay[col] = day;
+  }
+  return colToDay;
+}
+
 function parseNurseSchedule(records) {
   const result = {};
+  const colToDay = buildColToDay(records);
+  const hasColMap = Object.keys(colToDay).length > 0;
   for (const r of records) {
     const f = r.fields;
-    const ym = fv(f, "年月");         // "2026-04"
-    const name = fv(f, "姓名");
-    const role = fv(f, "角色") || "护士";
-    if (!ym || !name) continue;
+    const name = fv(f,"姓名");
+    const ym   = fv(f,"年月");
+    const role = fv(f,"角色") || "护士";
+    if (!name || !ym || name==="姓名") continue;
     if (!result[ym]) result[ym] = {};
     if (!result[ym][name]) result[ym][name] = {role, shifts:{}};
-    for (let d = 1; d <= 31; d++) {
-      const v = fv(f, String(d));
-      if (v) result[ym][name].shifts[d] = v;
+    result[ym][name].role = role;
+    if (hasColMap) {
+      for (const [col, day] of Object.entries(colToDay)) {
+        const v = fv(f, col);
+        if (v) result[ym][name].shifts[day] = v;
+      }
+    } else {
+      for (let d = 1; d <= 31; d++) {
+        const v = fv(f, String(d));
+        if (v) result[ym][name].shifts[d] = v;
+      }
     }
   }
   return result;
@@ -340,37 +361,55 @@ function parseTRotation(records) {
   return result;
 }
 
-// 解析美疗师日排班 → {year_month: {name: {day: shift}}}
+// 解析美疗师日排班
 function parseTDaily(records) {
   const result = {};
+  const colToDay = buildColToDay(records);
+  const hasColMap = Object.keys(colToDay).length > 0;
   for (const r of records) {
     const f = r.fields;
-    const ym = fv(f, "年月");
-    const name = fv(f, "姓名");
-    if (!ym || !name) continue;
+    const name = fv(f,"姓名");
+    const ym   = fv(f,"年月");
+    if (!name || !ym || name==="姓名") continue;
     if (!result[ym]) result[ym] = {};
     if (!result[ym][name]) result[ym][name] = {};
-    for (let d = 1; d <= 31; d++) {
-      const v = fv(f, String(d));
-      if (v) result[ym][name][d] = v;
+    if (hasColMap) {
+      for (const [col, day] of Object.entries(colToDay)) {
+        const v = fv(f, col);
+        if (v) result[ym][name][day] = v;
+      }
+    } else {
+      for (let d = 1; d <= 31; d++) {
+        const v = fv(f, String(d));
+        if (v) result[ym][name][d] = v;
+      }
     }
   }
   return result;
 }
 
-// 解析医生出诊 → {year_month: {name: {day: 1/0}}}
+// 解析医生出诊
 function parseDoctors(records) {
   const result = {};
+  const colToDay = buildColToDay(records);
+  const hasColMap = Object.keys(colToDay).length > 0;
   for (const r of records) {
     const f = r.fields;
-    const ym = fv(f, "年月");
-    const name = fv(f, "姓名");
-    if (!ym || !name) continue;
+    const name = fv(f,"姓名");
+    const ym   = fv(f,"年月");
+    if (!name || !ym || name==="姓名") continue;
     if (!result[ym]) result[ym] = {};
     if (!result[ym][name]) result[ym][name] = {};
-    for (let d = 1; d <= 31; d++) {
-      const v = fv(f, String(d));
-      result[ym][name][d] = (v === "出诊") ? 1 : 0;
+    if (hasColMap) {
+      for (const [col, day] of Object.entries(colToDay)) {
+        const v = fv(f, col);
+        result[ym][name][day] = (v==="出诊") ? 1 : 0;
+      }
+    } else {
+      for (let d = 1; d <= 31; d++) {
+        const v = fv(f, String(d));
+        result[ym][name][d] = (v==="出诊") ? 1 : 0;
+      }
     }
   }
   return result;
