@@ -235,6 +235,7 @@ const FEISHU_CONFIG = {
   APP_ID:     "cli_a950b6f99fb95bc8",
   APP_SECRET: "E0q21M4FHBqZDNYZCN73mdFNktoxhTOy",
   APP_TOKEN:  "PPSkb00lkaxMnusHZAJcFBainAg",
+  PROXY:      "https://green-wood.aa17306397421.workers.dev",
   TABLES: {
     nurse_shift_def:  "tbl5TJfpAgRxJ1W6",   // ①班次定义·护士
     t_shift_def:      "tblnHRQVvEvU9L9U",   // ①班次定义·美疗师
@@ -253,7 +254,7 @@ let _tokenExpire = 0;
 
 async function getToken() {
   if (_token && Date.now() < _tokenExpire) return _token;
-  const res = await fetch("https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal", {
+  const res = await fetch(FEISHU_CONFIG.PROXY + "/open-apis/auth/v3/tenant_access_token/internal", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({app_id: FEISHU_CONFIG.APP_ID, app_secret: FEISHU_CONFIG.APP_SECRET})
@@ -269,10 +270,10 @@ async function fetchAllRecords(tableId) {
   const token = await getToken();
   let records = [], pageToken = "";
   do {
-    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_CONFIG.APP_TOKEN}/tables/${tableId}/records?page_size=500${pageToken?"&page_token="+pageToken:""}`;
+    const url = `${FEISHU_CONFIG.PROXY}/open-apis/bitable/v1/apps/${FEISHU_CONFIG.APP_TOKEN}/tables/${tableId}/records?page_size=500${pageToken?"&page_token="+pageToken:""}`;
     const res = await fetch(url, {headers:{"Authorization":"Bearer "+token}});
     const data = await res.json();
-    if (data.code !== 0) throw new Error("读取表格失败: " + data.msg);
+    if (data.code !== 0) throw new Error("读取表格失败("+tableId+"): " + data.msg);
     records = records.concat(data.data.items || []);
     pageToken = data.data.has_more ? data.data.page_token : "";
   } while (pageToken);
