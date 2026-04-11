@@ -295,13 +295,20 @@ function fv(fields, key) {
 
 // 解析护士排班表 → {year_month: {name: {role, shifts:{day:shift}}}}
 function buildColToDay(records) {
-  const headerRow = records.find(r => fv(r.fields,"姓名")==="姓名" || fv(r.fields,"列1")==="姓名 \\ 日期");
-  if (!headerRow) return {};
+  // 表头行特征：姓名字段值为"姓名"
+  const headerRow = records.find(r => {
+    const v = r.fields["姓名"];
+    const s = typeof v === "string" ? v : (Array.isArray(v) ? v.map(x=>x.text||x).join("") : String(v||""));
+    return s.trim() === "姓名";
+  });
+  if (!headerRow) { console.warn("未找到表头行，fields样本:", JSON.stringify(Object.keys(records[0]?.fields||{}))); return {}; }
   const colToDay = {};
   for (const [col, val] of Object.entries(headerRow.fields)) {
-    const day = parseInt(fv({"v":val}, "v") || String(val));
+    const s = typeof val === "string" ? val : (Array.isArray(val) ? val.map(x=>x.text||x).join("") : String(val||""));
+    const day = parseInt(s.trim());
     if (!isNaN(day) && day >= 1 && day <= 31) colToDay[col] = day;
   }
+  console.log("colToDay:", JSON.stringify(colToDay));
   return colToDay;
 }
 
@@ -516,7 +523,11 @@ function showError(html) {
 ══════════════════════════════════════════ */
 function isNurseOn(shift, s, e) {
   if (!shift || shift==="休" || shift==="调休") return false;
-  const def = DB.nurseShiftDef[shift] || DEFAULT_NURSE_SHIFTS[shift];
+  // 兼容"早"/"晚"和"早班"/"晚班"两种写法
+  const aliasMap = {"早":"早班","晚":"晚班","早中":"早中班","中":"中班"};
+  const key = aliasMap[shift] || shift;
+  const def = DB.nurseShiftDef[key] || DEFAULT_NURSE_SHIFTS[key]
+           || DB.nurseShiftDef[shift] || DEFAULT_NURSE_SHIFTS[shift];
   if (!def || def.start===null) return false;
   return def.start <= s && def.end >= e;
 }
@@ -561,9 +572,16 @@ function getTSchedule(ym, day) {
   return res;
 }
 
+function normTShift(sh) {
+  const aliasMap = {"早":"早班","早中":"早中班","中":"中班","晚":"晚班"};
+  return aliasMap[sh] || sh;
+}
+
 function getTAtSlot(sched, slotS) {
   return Object.entries(sched).filter(([,sh]) => {
-    const def = DB.tShiftDef[sh] || DEFAULT_T_SHIFTS[sh];
+    const key = normTShift(sh);
+    const def = DB.tShiftDef[key] || DEFAULT_T_SHIFTS[key]
+             || DB.tShiftDef[sh]  || DEFAULT_T_SHIFTS[sh];
     return def && def.start <= slotS && def.end >= slotS;
   }).map(([n,sh]) => ({name:n, shift:sh}));
 }
