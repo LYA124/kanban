@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>预约产能看板 · 杭州中瑞医疗美容</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0ede7;--border:rgba(0,0,0,.07);--border-md:rgba(0,0,0,.12);
+  --text:#1c1c1a;--text2:#5c5c58;--text3:#9c9c96;
+  --ok:#2a7a44;--ok-bg:#eaf5ee;--ok-bd:#b0ddb8;
+  --warn:#8a5800;--warn-bg:#fdf4e0;--warn-bd:#f0c96a;
+  --full:#b03030;--full-bg:#fdf0f0;--full-bd:#f0aaaa;
+  --nurse:#1a5c8a;--nurse-bg:#e8f3fb;
+  --therapist:#5a3a8a;--therapist-bg:#f0ebfb;
+  --doctor:#7a4a20;--doctor-bg:#fbf3e8;
+  --head-bg:#1c2b3a;--accent:#c8956a;
+  --radius:10px;--radius-lg:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans SC','DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* HEADER */
+.hdr{background:var(--head-bg);padding:0 28px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:200}
+.hdr-brand{display:flex;flex-direction:column}
+.hdr-name{font-size:15px;font-weight:600;color:#fff;letter-spacing:-.01em}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px}
+.hdr-sep{width:1px;height:28px;background:rgba(255,255,255,.12)}
+.hdr-pill{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);font-size:11px;font-weight:500;padding:3px 11px;border-radius:20px;border:1px solid rgba(255,255,255,.15)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.hdr-nav{display:flex;background:rgba(255,255,255,.08);border-radius:var(--radius);overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+.hdr-nav button{padding:6px 16px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);background:transparent;border:none;cursor:pointer;font-family:inherit;transition:.15s}
+.hdr-nav button.active{background:rgba(255,255,255,.18);color:#fff}
+.hdr-sel{font-size:13px;font-family:inherit;padding:5px 10px;border-radius:var(--radius);border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;outline:none}
+.hdr-sel option{background:#1c2b3a;color:#fff}
+.sync-btn{font-size:11px;font-family:inherit;padding:5px 12px;border-radius:var(--radius);border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);cursor:pointer;transition:.15s}
+.sync-btn:hover{background:rgba(255,255,255,.15)}
+.sync-status{font-size:10px;color:rgba(255,255,255,.4)}
+
+/* PAGES */
+.page{display:none;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* LOADING */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:16px}
+.spinner{width:32px;height:32px;border:3px solid var(--border-md);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text3)}
+.error-box{background:var(--full-bg);border:1px solid var(--full-bd);border-radius:var(--radius);padding:16px 20px;margin:20px;font-size:13px;color:var(--full)}
+.error-box b{font-weight:600}
+
+/* MONTH VIEW */
+.mv-wrap{max-width:1200px;margin:0 auto;padding:24px 20px 40px}
+.mv-legend{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.mv-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.lsq{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.lsq-ok{background:var(--ok-bg);border:1px solid var(--ok-bd)}
+.lsq-warn{background:var(--warn-bg);border:1px solid var(--warn-bd)}
+.lsq-nurse{background:var(--nurse-bg);border:1px solid #90c4e0}
+.lsq-t{background:var(--therapist-bg);border:1px solid #c0a0e8}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.cal-dow{text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:6px 0;letter-spacing:.04em}
+.cal-dow.we{color:#c0392b}
+.cal-blank{background:transparent}
+.cal-day{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;cursor:pointer;transition:all .15s;min-height:100px;display:flex;flex-direction:column;gap:4px;position:relative}
+.cal-day:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(200,149,106,.15);transform:translateY(-1px)}
+.cal-day.today{border-color:var(--accent);border-width:2px}
+.cal-day.weekend .cal-dn{color:#c0392b}
+.cal-dn{font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;margin-bottom:2px}
+.cal-today-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;margin-left:4px;vertical-align:middle}
+.cal-row{display:flex;align-items:center;gap:4px}
+.cal-icon{width:14px;height:14px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0}
+.ci-n{background:var(--nurse-bg);color:var(--nurse)}
+.ci-t{background:var(--therapist-bg);color:var(--therapist)}
+.ci-d{background:var(--doctor-bg);color:var(--doctor)}
+.cal-chip{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:500;white-space:nowrap}
+.chip-ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd)}
+.chip-warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd)}
+.chip-off{background:var(--surface2);color:var(--text3)}
+.chip-n{background:var(--nurse-bg);color:var(--nurse)}
+.chip-t{background:var(--therapist-bg);color:var(--therapist)}
+.cal-names{font-size:9px;color:var(--text3);line-height:1.5}
+
+/* DAY VIEW */
+.dv-wrap{max-width:1100px;margin:0 auto;padding:20px 20px 40px}
+.rule-banner{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:9px 16px;font-size:12px;color:var(--text2);margin-bottom:18px;line-height:1.8}
+.rule-banner b{color:var(--text);font-weight:600}
+.summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:18px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px}
+.metric-label{font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500}
+.metric-value{font-size:22px;font-weight:600;font-family:'DM Sans',sans-serif;letter-spacing:-.02em}
+.metric-value.ok{color:var(--ok)}.metric-value.warn{color:var(--warn)}.metric-value.full{color:var(--full)}.metric-value.off{color:var(--text3)}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.content-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:800px){.content-grid{grid-template-columns:1fr}.summary-grid{grid-template-columns:repeat(2,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.panel-hdr{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.panel-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.pi-n{background:var(--nurse-bg);color:var(--nurse)}
+.pi-t{background:var(--therapist-bg);color:var(--therapist)}
+.panel-title{font-size:13px;font-weight:600;color:var(--text)}
+.panel-sub{font-size:11px;color:var(--text3);margin-left:auto}
+.slot-list{padding:6px 0}
+.slot-item{display:flex;align-items:stretch;padding:0 14px;min-height:42px;border-bottom:1px solid var(--border);transition:background .1s}
+.slot-item:last-child{border-bottom:none}
+.slot-item:hover{background:var(--bg)}
+.slot-item.current{background:#fffbf5}
+.slot-ind{width:3px;border-radius:2px;margin:8px 10px 8px 0;flex-shrink:0}
+.ind-ok{background:var(--ok)}.ind-warn{background:var(--warn)}.ind-full{background:var(--full)}.ind-off{background:#ddd}
+.slot-time{font-size:11px;color:var(--text3);min-width:46px;padding:10px 10px 10px 0;font-family:'DM Sans',sans-serif;font-weight:500;flex-shrink:0;display:flex;align-items:center}
+.slot-body{flex:1;padding:7px 0;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.slot-names{font-size:11px;color:var(--text2);line-height:1.5;flex:1}
+.hl-head{color:var(--ok);font-weight:500}
+.extra{color:var(--text3);font-size:10px}
+.cap-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;font-family:'DM Sans',sans-serif}
+.cap-ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd)}
+.cap-warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd)}
+.cap-full{background:var(--full-bg);color:var(--full);border:1px solid var(--full-bd)}
+.cap-off{background:var(--surface2);color:var(--text3);border:1px solid var(--border-md)}
+.slot-tag-lunch{font-size:9px;background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd);padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:500}
+.slot-tag-peak{font-size:9px;background:#f0ebfb;color:#5a3a8a;border:1px solid #d0b0f0;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:500}
+.t-sched{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:5px}
+.t-badge{display:inline-flex;align-items:center;gap:4px;background:var(--therapist-bg);border:1px solid rgba(90,58,138,.15);border-radius:20px;padding:2px 9px;font-size:11px}
+.t-badge-name{font-weight:600;color:var(--therapist)}
+.t-badge-shift{color:var(--text3);font-size:10px}
+.t-badge-time{color:var(--accent);font-weight:500;font-size:10px}
+.doctor-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px 16px}
+.doc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.doc-title{font-size:13px;font-weight:600}
+.doc-note{font-size:11px;color:var(--text3);margin-left:auto}
+.doc-list{display:flex;flex-wrap:wrap;gap:6px}
+.doc-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid}
+.doc-on{background:var(--doctor-bg);color:var(--doctor);border-color:rgba(122,74,32,.2)}
+.doc-off{background:var(--surface2);color:var(--text3);border-color:var(--border-md);text-decoration:line-through;opacity:.6}
+.doc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-on{background:var(--ok)}.dot-off{background:#ccc}
+.arriving-note{font-size:10px;color:var(--warn);font-weight:500;margin-left:2px}
+.head-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.head-date{font-size:16px;font-weight:600}
+.head-dow{font-size:13px;color:var(--text3);margin-left:4px}
+.back-btn{font-size:12px;color:var(--nurse);cursor:pointer;padding:4px 10px;border-radius:var(--radius);border:1px solid var(--nurse-bg);background:var(--nurse-bg);font-family:inherit;transition:.15s}
+.back-btn:hover{background:#d0e8f8}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-name">杭州中瑞医疗美容</div>
+    <div class="hdr-sub">预约产能看板</div>
+  </div>
+  <div class="hdr-sep"></div>
+  <div class="hdr-pill" id="now-pill">载入中...</div>
+  <div class="hdr-right">
+    <span class="sync-status" id="sync-status"></span>
+    <button class="sync-btn" onclick="syncAll()">↻ 同步飞书数据</button>
+    <div class="hdr-nav">
+      <button class="active" onclick="showPage('month')">月览</button>
+      <button onclick="showPage('day')">日详情</button>
+    </div>
+    <select class="hdr-sel" id="month-sel" onchange="onMonthChange()"></select>
+    <select class="hdr-sel" id="day-sel" onchange="onDayChange()" style="display:none"></select>
+  </div>
+</div>
+
+<div id="page-month" class="page active">
+  <div class="mv-wrap">
+    <div id="month-loading" class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">正在从飞书读取排班数据...</div>
+    </div>
+    <div id="month-error" style="display:none"></div>
+    <div id="month-content" style="display:none">
+      <div class="mv-legend">
+        <div class="mv-legend-item"><div class="lsq lsq-ok"></div>护士充裕（≥5人）</div>
+        <div class="mv-legend-item"><div class="lsq lsq-warn"></div>护士有限（3–4人）</div>
+        <div class="mv-legend-item"><div class="lsq lsq-nurse"></div>护士长协助</div>
+        <div class="mv-legend-item"><div class="lsq lsq-t"></div>美疗师在岗</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-day" class="page">
+  <div class="dv-wrap">
+    <div class="head-row">
+      <button class="back-btn" onclick="showPage('month')">← 返回月览</button>
+      <span class="head-date" id="day-heading"></span>
+      <span class="head-dow" id="day-dow"></span>
+    </div>
+    <div class="rule-banner">
+      <b>预约规则：</b>可约数 = 在岗护士数（含 <b>20分钟</b> 重叠弹性）&nbsp;·&nbsp;
+      早班 <b>9:30–18:30</b>，晚班 <b>11:30–20:30</b>&nbsp;·&nbsp;
+      午休 12–14点交错，始终 <b>≥3人</b> 在岗
+    </div>
+    <div class="summary-grid" id="summary"></div>
+    <div class="content-grid">
+      <div class="panel">
+        <div class="panel-hdr">
+          <div class="panel-icon pi-n">护</div>
+          <div class="panel-title">护士项目</div>
+          <div class="panel-sub">水光针 · 激光 · 注射 · 脱毛 · 护理</div>
+        </div>
+        <div class="slot-list" id="nurse-slots"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-hdr">
+          <div class="panel-icon pi-t">疗</div>
+          <div class="panel-title">美疗师项目</div>
+          <div class="panel-sub">花园水疗 · 修丽可</div>
+        </div>
+        <div class="t-sched" id="t-sched"></div>
+        <div class="slot-list" id="t-slots"></div>
+      </div>
+    </div>
+    <div class="doctor-panel">
+      <div class="doc-hdr">
+        <div class="panel-icon" style="background:var(--doctor-bg);color:var(--doctor);width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">医</div>
+        <div class="doc-title">今日医生出诊</div>
+        <div class="doc-note">仅供参考，不影响预约占位</div>
+      </div>
+      <div class="doc-list" id="doc-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   飞书配置 — 填入你的凭证和表格信息
+══════════════════════════════════════════ */
+const FEISHU_CONFIG = {
+  APP_ID:     "cli_a950b6f99fb95bc8",
+  APP_SECRET: "E0q21M4FHBqZDNYZCN73mdFNktoxhTOy",
+  APP_TOKEN:  "PPSkb00lkaxMnusHZAJcFBainAg",
+  TABLES: {
+    nurse_shift_def:  "tbl5TJfpAgRxJ1W6",   // ①班次定义·护士
+    t_shift_def:      "tblnHRQVvEvU9L9U",   // ①班次定义·美疗师
+    nurse_schedule:   "tbl2B2cLZiqxp2mK",   // ②护士排班
+    t_rotation:       "tbl4eYxLA06rpNf0",   // ③美疗师排班周
+    t_daily:          "tbl2cb3bX1rN2MB8",   // ③美疗师排班日
+    doctor:           "tbl2Emv4lhuunxGM",   // ④医生出诊
+  }
+};
+
+/* ══════════════════════════════════════════
+   飞书 API 层
+══════════════════════════════════════════ */
+let _token = null;
+let _tokenExpire = 0;
+
+async function getToken() {
+  if (_token && Date.now() < _tokenExpire) return _token;
+  const res = await fetch("https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({app_id: FEISHU_CONFIG.APP_ID, app_secret: FEISHU_CONFIG.APP_SECRET})
+  });
+  const data = await res.json();
+  if (data.code !== 0) throw new Error("Token获取失败: " + data.msg);
+  _token = data.tenant_access_token;
+  _tokenExpire = Date.now() + (data.expire - 60) * 1000;
+  return _token;
+}
+
+async function fetchAllRecords(tableId) {
+  const token = await getToken();
+  let records = [], pageToken = "";
+  do {
+    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_CONFIG.APP_TOKEN}/tables/${tableId}/records?page_size=500${pageToken?"&page_token="+pageToken:""}`;
+    const res = await fetch(url, {headers:{"Authorization":"Bearer "+token}});
+    const data = await res.json();
+    if (data.code !== 0) throw new Error("读取表格失败: " + data.msg);
+    records = records.concat(data.data.items || []);
+    pageToken = data.data.has_more ? data.data.page_token : "";
+  } while (pageToken);
+  return records;
+}
+
+/* ══════════════════════════════════════════
+   数据解析层 — 把飞书records转成看板用的结构
+══════════════════════════════════════════ */
+// 解析单选/文本字段
+function fv(fields, key) {
+  const v = fields[key];
+  if (!v) return "";
+  if (typeof v === "string") return v.trim();
+  if (Array.isArray(v)) return v.map(x => x.text||x).join("").trim();
+  if (v.text) return v.text.trim();
+  return String(v).trim();
+}
+
+// 解析护士排班表 → {year_month: {name: {role, shifts:{day:shift}}}}
+function parseNurseSchedule(records) {
+  const result = {};
+  for (const r of records) {
+    const f = r.fields;
+    const ym = fv(f, "年月");         // "2026-04"
+    const name = fv(f, "姓名");
+    const role = fv(f, "角色") || "护士";
+    if (!ym || !name) continue;
+    if (!result[ym]) result[ym] = {};
+    if (!result[ym][name]) result[ym][name] = {role, shifts:{}};
+    for (let d = 1; d <= 31; d++) {
+      const v = fv(f, String(d));
+      if (v) result[ym][name].shifts[d] = v;
+    }
+  }
+  return result;
+}
+
+// 解析美疗师周轮换 → {year_month: [{week,days:[s,e],order:[n1,n2,n3,n4]}]}
+function parseTRotation(records) {
+  const result = {};
+  for (const r of records) {
+    const f = r.fields;
+    const ym = fv(f, "年月");
+    if (!ym) continue;
+    if (!result[ym]) result[ym] = [];
+    // 解析日期范围 "第1周 (4/1–4/7)" → days:[1,7]
+    const weekStr = fv(f, "周次");
+    const match = weekStr.match(/(\d+)\/(\d+)[–\-](\d+)\/(\d+)/);
+    const days = match ? [parseInt(match[2]), parseInt(match[4])] : [1,7];
+    result[ym].push({
+      week: weekStr,
+      days,
+      order: [
+        fv(f,"序号1→早班"),
+        fv(f,"序号2→早中班"),
+        fv(f,"序号3→中班"),
+        fv(f,"序号4→晚班"),
+      ]
+    });
+  }
+  // sort by start day
+  for (const ym in result) result[ym].sort((a,b)=>a.days[0]-b.days[0]);
+  return result;
+}
+
+// 解析美疗师日排班 → {year_month: {name: {day: shift}}}
+function parseTDaily(records) {
+  const result = {};
+  for (const r of records) {
+    const f = r.fields;
+    const ym = fv(f, "年月");
+    const name = fv(f, "姓名");
+    if (!ym || !name) continue;
+    if (!result[ym]) result[ym] = {};
+    if (!result[ym][name]) result[ym][name] = {};
+    for (let d = 1; d <= 31; d++) {
+      const v = fv(f, String(d));
+      if (v) result[ym][name][d] = v;
+    }
+  }
+  return result;
+}
+
+// 解析医生出诊 → {year_month: {name: {day: 1/0}}}
+function parseDoctors(records) {
+  const result = {};
+  for (const r of records) {
+    const f = r.fields;
+    const ym = fv(f, "年月");
+    const name = fv(f, "姓名");
+    if (!ym || !name) continue;
+    if (!result[ym]) result[ym] = {};
+    if (!result[ym][name]) result[ym][name] = {};
+    for (let d = 1; d <= 31; d++) {
+      const v = fv(f, String(d));
+      result[ym][name][d] = (v === "出诊") ? 1 : 0;
+    }
+  }
+  return result;
+}
+
+// 解析班次定义 → {name: {start: 9.5, end: 18.5}}
+function parseShiftDef(records) {
+  const result = {};
+  for (const r of records) {
+    const f = r.fields;
+    const name = fv(f, "班次名称");
+    const startStr = fv(f, "到岗时间");
+    const endStr   = fv(f, "离岗时间");
+    if (!name) continue;
+    const parseTime = s => {
+      if (!s) return null;
+      const [h,m] = s.split(":").map(Number);
+      return h + (m||0)/60;
+    };
+    result[name] = {start: parseTime(startStr), end: parseTime(endStr)};
+  }
+  return result;
+}
+
+/* ══════════════════════════════════════════
+   全局数据状态
+══════════════════════════════════════════ */
+let DB = {
+  nurseShiftDef: {},   // {班次名: {start, end}}
+  tShiftDef:     {},
+  nurseSchedule: {},   // {ym: {name: {role, shifts}}}
+  tRotation:     {},   // {ym: [{week,days,order}]}
+  tDaily:        {},   // {ym: {name: {day: shift}}}
+  doctors:       {},   // {ym: {name: {day: 1/0}}}
+  loaded: false,
+  lastSync: null,
+};
+
+// 默认班次定义（飞书读取失败时的后备）
+const DEFAULT_NURSE_SHIFTS = {
+  "早班": {start:9.5,  end:18.5},
+  "晚班": {start:11.5, end:20.5},
+};
+const DEFAULT_T_SHIFTS = {
+  "早班":  {start:10, end:20},
+  "早中班":{start:11, end:21},
+  "中班":  {start:12, end:22},
+  "晚班":  {start:13, end:23},
+};
+const T_SHIFTS_ORDER = ["早班","早中班","中班","晚班"];
+const T_LABEL = {"早班":"10:00到","早中班":"11:00到","中班":"12:00到","晚班":"13:00到"};
+const DOWS = ["日","一","二","三","四","五","六"];
+
+async function syncAll() {
+  setSyncStatus("同步中...", "#c8956a");
+  try {
+    const cfg = FEISHU_CONFIG.TABLES;
+    const [nsDef, tDef, nsSched, tRot, tDay, doc] = await Promise.all([
+      fetchAllRecords(cfg.nurse_shift_def),
+      fetchAllRecords(cfg.t_shift_def),
+      fetchAllRecords(cfg.nurse_schedule),
+      fetchAllRecords(cfg.t_rotation),
+      fetchAllRecords(cfg.t_daily),
+      fetchAllRecords(cfg.doctor),
+    ]);
+    DB.nurseShiftDef = Object.assign({}, DEFAULT_NURSE_SHIFTS, parseShiftDef(nsDef));
+    DB.tShiftDef     = Object.assign({}, DEFAULT_T_SHIFTS,     parseShiftDef(tDef));
+    DB.nurseSchedule = parseNurseSchedule(nsSched);
+    DB.tRotation     = parseTRotation(tRot);
+    DB.tDaily        = parseTDaily(tDay);
+    DB.doctors       = parseDoctors(doc);
+    DB.loaded = true;
+    DB.lastSync = new Date();
+    setSyncStatus("已同步 " + formatTime(DB.lastSync), "#2a7a44");
+    buildMonthOptions();
+    renderCurrentPage();
+    localStorage.setItem("kanban_db", JSON.stringify(DB));
+  } catch(e) {
+    setSyncStatus("同步失败", "#b03030");
+    showError("飞书数据读取失败：" + e.message + "<br><br>请检查：<br>① 是否已在飞书多维表格中添加文档应用<br>② 表格ID是否正确填写（TABLES配置项）<br>③ 网络是否正常");
+    console.error(e);
+  }
+}
+
+function setSyncStatus(msg, color) {
+  const el = document.getElementById("sync-status");
+  el.textContent = msg;
+  el.style.color = color || "rgba(255,255,255,.4)";
+}
+
+function formatTime(d) {
+  return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0");
+}
+
+function showError(html) {
+  document.getElementById("month-loading").style.display = "none";
+  document.getElementById("month-error").style.display = "block";
+  document.getElementById("month-error").innerHTML = `<div class="error-box"><b>数据加载失败</b><br>${html}</div>`;
+  document.getElementById("month-content").style.display = "none";
+}
+
+/* ══════════════════════════════════════════
+   排班逻辑层
+══════════════════════════════════════════ */
+function isNurseOn(shift, s, e) {
+  if (!shift || shift==="休" || shift==="调休") return false;
+  const def = DB.nurseShiftDef[shift] || DEFAULT_NURSE_SHIFTS[shift];
+  if (!def || def.start===null) return false;
+  return def.start <= s && def.end >= e;
+}
+
+function getNursesByRole(ym, day, s, e) {
+  const md = DB.nurseSchedule[ym] || {};
+  const nurses=[], heads=[];
+  for (const [name, info] of Object.entries(md)) {
+    if (isNurseOn(info.shifts[day], s, e)) {
+      if (info.role === "护士长") heads.push(name);
+      else nurses.push(name);
+    }
+  }
+  return {nurses, heads};
+}
+
+function getNurseCount(ym, day, s, e, lunch) {
+  const {nurses} = getNursesByRole(ym, day, s, e);
+  return lunch ? Math.max(3, Math.round(nurses.length * 0.65)) : nurses.length;
+}
+
+function getTSchedule(ym, day) {
+  // 优先用日排班表，否则用周轮换计算
+  const daily = DB.tDaily[ym] || {};
+  const allNames = Object.keys(daily);
+  if (allNames.length > 0) {
+    const res = {};
+    for (const [name, days] of Object.entries(daily)) {
+      const sh = days[day];
+      if (sh && sh !== "休" && sh !== "调休") res[name] = sh;
+    }
+    return res;
+  }
+  // fallback: 周轮换
+  const rots = DB.tRotation[ym] || [];
+  let order = ["沐泽","荟荟","安安","陌陌"];
+  for (const r of rots) {
+    if (day >= r.days[0] && day <= r.days[1]) { order = r.order; break; }
+  }
+  const res = {};
+  order.forEach((name, i) => { if (name) res[name] = T_SHIFTS_ORDER[i]; });
+  return res;
+}
+
+function getTAtSlot(sched, slotS) {
+  return Object.entries(sched).filter(([,sh]) => {
+    const def = DB.tShiftDef[sh] || DEFAULT_T_SHIFTS[sh];
+    return def && def.start <= slotS && def.end >= slotS;
+  }).map(([n,sh]) => ({name:n, shift:sh}));
+}
+
+function capClass(n) { return n>=5?"ok":n>=3?"warn":n>0?"full":"off"; }
+
+function getMonthMeta(ym) {
+  const [y,m] = ym.split("-").map(Number);
+  const days = new Date(y, m, 0).getDate();
+  const firstDow = new Date(y, m-1, 1).getDay();
+  return {days, firstDow};
+}
+
+function getDow(ym, day) {
+  const [y,m] = ym.split("-").map(Number);
+  return new Date(y, m-1, day).getDay();
+}
+
+function getCurrentH() {
+  const n = new Date(); return n.getHours() + n.getMinutes()/60;
+}
+
+/* ══════════════════════════════════════════
+   UI 层
+══════════════════════════════════════════ */
+let currentMonth = null;
+let currentDay   = null;
+
+function buildMonthOptions() {
+  const sel = document.getElementById("month-sel");
+  const existing = new Set([...sel.options].map(o=>o.value));
+  const months = new Set([
+    ...Object.keys(DB.nurseSchedule),
+    ...Object.keys(DB.tDaily),
+    ...Object.keys(DB.doctors),
+  ]);
+  // ensure at least current month
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  months.add(cur);
+  [...months].sort().forEach(ym => {
+    if (existing.has(ym)) return;
+    const [y,m] = ym.split("-").map(Number);
+    const opt = document.createElement("option");
+    opt.value = ym;
+    opt.textContent = `${y}年${m}月`;
+    sel.appendChild(opt);
+  });
+  if (!currentMonth) {
+    currentMonth = sel.value || cur;
+    sel.value = currentMonth;
+  }
+}
+
+function buildDaySelect() {
+  const sel = document.getElementById("day-sel");
+  sel.innerHTML = "";
+  const {days} = getMonthMeta(currentMonth);
+  for (let d=1; d<=days; d++) {
+    const dow = getDow(currentMonth, d);
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = `${d}日（周${DOWS[dow]}）`;
+    sel.appendChild(opt);
+  }
+  if (currentDay) sel.value = currentDay;
+}
+
+function showPage(p) {
+  document.querySelectorAll(".page").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".hdr-nav button").forEach((b,i)=>{
+    b.classList.toggle("active",(i===0&&p==="month")||(i===1&&p==="day"));
+  });
+  document.getElementById("day-sel").style.display = p==="day"?"":"none";
+  document.getElementById("page-"+p).classList.add("active");
+  if (p==="month") renderMonth();
+  if (p==="day") { if(!currentDay){const n=new Date();currentDay=n.getDate();} renderDay(); }
+}
+
+function onMonthChange() {
+  currentMonth = document.getElementById("month-sel").value;
+  currentDay = null;
+  buildDaySelect();
+  renderCurrentPage();
+}
+
+function onDayChange() {
+  currentDay = parseInt(document.getElementById("day-sel").value);
+  renderDay();
+}
+
+function renderCurrentPage() {
+  const activePage = document.querySelector(".page.active");
+  if (!activePage) return;
+  if (activePage.id === "page-month") renderMonth();
+  else renderDay();
+}
+
+/* ── MONTH ── */
+function renderMonth() {
+  if (!DB.loaded) return;
+  document.getElementById("month-loading").style.display = "none";
+  document.getElementById("month-error").style.display = "none";
+  document.getElementById("month-content").style.display = "block";
+
+  const ym = currentMonth;
+  const {days, firstDow} = getMonthMeta(ym);
+  const grid = document.getElementById("cal-grid");
+  grid.innerHTML = "";
+
+  ["日","一","二","三","四","五","六"].forEach((d,i)=>{
+    const el = document.createElement("div");
+    el.className = "cal-dow" + (i===0||i===6?" we":"");
+    el.textContent = "周"+d;
+    grid.appendChild(el);
+  });
+  for (let i=0; i<firstDow; i++) {
+    const b = document.createElement("div"); b.className="cal-blank"; grid.appendChild(b);
+  }
+  const now = new Date();
+  const isCurrentMonth = now.getFullYear()===parseInt(ym.split("-")[0]) && (now.getMonth()+1)===parseInt(ym.split("-")[1]);
+
+  for (let d=1; d<=days; d++) {
+    const dow = getDow(ym, d);
+    const isToday = isCurrentMonth && now.getDate()===d;
+    const isWE = dow===0||dow===6;
+    const {nurses:n930, heads:h930} = getNursesByRole(ym,d,9.5,10.5);
+    const nc = n930.length;
+    const sched = getTSchedule(ym,d);
+    const tAll = getTAtSlot(sched,14);
+    const docs = DB.doctors[ym] ? Object.entries(DB.doctors[ym]).filter(([,v])=>v[d]===1).map(([k])=>k) : [];
+
+    const cell = document.createElement("div");
+    cell.className = "cal-day"+(isToday?" today":"")+(isWE?" weekend":"");
+    cell.onclick = ()=>{ currentDay=d; buildDaySelect(); document.getElementById("day-sel").value=d; showPage("day"); };
+
+    const nCls = nc>=5?"chip-ok":nc>=3?"chip-warn":"chip-off";
+    let html = `<div class="cal-dn">${d}${isToday?'<span class="cal-today-dot"></span>':''}</div>`;
+    html += `<div class="cal-row"><div class="cal-icon ci-n">护</div><span class="cal-chip ${nCls}">${nc}人</span>${h930.length>0?'<span class="cal-chip chip-n">+护士长</span>':''}</div>`;
+    if (n930.length>0) html += `<div class="cal-names">${n930.join("、")}</div>`;
+    if (tAll.length>0) html += `<div class="cal-row"><div class="cal-icon ci-t">疗</div><span class="cal-chip chip-t">${tAll.map(t=>t.name).join("、")}</span></div>`;
+    if (docs.length>0) html += `<div class="cal-row"><div class="cal-icon ci-d">医</div><div class="cal-names">${docs.join("、")}</div></div>`;
+    cell.innerHTML = html;
+    grid.appendChild(cell);
+  }
+}
+
+/* ── DAY ── */
+const NURSE_SLOTS=[
+  {l:"9:30",s:9.5,e:10.5},{l:"10:00",s:10,e:11},{l:"11:00",s:11,e:12},
+  {l:"11:30",s:11.5,e:12.5},{l:"12:00",s:12,e:13,lunch:true},{l:"13:00",s:13,e:14,lunch:true},
+  {l:"14:00",s:14,e:15},{l:"15:00",s:15,e:16},{l:"16:00",s:16,e:17},
+  {l:"17:00",s:17,e:18},{l:"18:00",s:18,e:19,peak:true},{l:"19:00",s:19,e:20,peak:true},
+  {l:"20:00",s:20,e:20.5,peak:true},
+];
+const T_SLOTS=[
+  {l:"10:00",s:10},{l:"11:00",s:11},{l:"12:00",s:12},{l:"13:00",s:13},
+  {l:"14:00",s:14},{l:"15:00",s:15},{l:"16:00",s:16},{l:"17:00",s:17},
+  {l:"18:00",s:18},{l:"19:00",s:19},{l:"20:00",s:20},
+];
+
+function renderDay() {
+  if (!DB.loaded) return;
+  const ym = currentMonth, day = currentDay||1;
+  const now = new Date();
+  const isToday = now.getFullYear()===parseInt(ym.split("-")[0])&&(now.getMonth()+1)===parseInt(ym.split("-")[1])&&now.getDate()===day;
+  const curH = isToday ? getCurrentH() : -1;
+  const dow = getDow(ym,day);
+  const [yr,mo] = ym.split("-");
+
+  document.getElementById("day-heading").textContent = `${yr}年${parseInt(mo)}月${day}日`;
+  document.getElementById("day-dow").textContent = `周${DOWS[dow]}`;
+
+  const sched = getTSchedule(ym,day);
+  const n930  = getNurseCount(ym,day,9.5,10.5,false);
+  const n12   = getNurseCount(ym,day,12,13,true);
+  const n18   = getNurseCount(ym,day,18,19,false);
+  const tFull = getTAtSlot(sched,14).length;
+
+  document.getElementById("summary").innerHTML=`
+    <div class="metric"><div class="metric-label">早班开门 9:30起</div>
+      <div class="metric-value ${capClass(n930)}">${n930}<span style="font-size:14px;font-weight:400;margin-left:2px">个</span></div>
+      <div class="metric-sub">早班护士在岗</div></div>
+    <div class="metric"><div class="metric-label">午间 12–14点</div>
+      <div class="metric-value ${capClass(n12)}">${n12}<span style="font-size:14px;font-weight:400;margin-left:2px">个</span></div>
+      <div class="metric-sub">午休轮替，含弹性</div></div>
+    <div class="metric"><div class="metric-label">晚高峰 18–20:30</div>
+      <div class="metric-value ${capClass(n18)}">${n18}<span style="font-size:14px;font-weight:400;margin-left:2px">个</span></div>
+      <div class="metric-sub">护士全员在岗</div></div>
+    <div class="metric"><div class="metric-label">美疗师全员到齐</div>
+      <div class="metric-value ${tFull>0?"ok":"off"}">${tFull}<span style="font-size:14px;font-weight:400;margin-left:2px">人</span></div>
+      <div class="metric-sub">${getTAtSlot(sched,14).map(t=>t.name).join("、")||"今日无"}</div></div>
+  `;
+
+  const nEl=document.getElementById("nurse-slots"); nEl.innerHTML="";
+  NURSE_SLOTS.forEach(slot=>{
+    const {nurses,heads}=getNursesByRole(ym,day,slot.s,slot.e);
+    const nc=slot.lunch?Math.max(3,Math.round(nurses.length*0.65)):nurses.length;
+    const cls=capClass(nc);
+    const isCur=curH>=slot.s&&curH<slot.e;
+    const item=document.createElement("div");
+    item.className="slot-item"+(isCur?" current":"");
+    const lt=slot.lunch?`<span class="slot-tag-lunch">午休</span>`:"";
+    const pt=slot.peak?`<span class="slot-tag-peak">晚高峰</span>`:"";
+    const headHtml=heads.length>0?` <span class="hl-head">+${heads.join("、")}（护士长协助）</span>`:"";
+    const lunchNote=slot.lunch&&nc<nurses.length?`<span class="extra"> 轮休中约${nc}人</span>`:"";
+    item.innerHTML=`
+      <div class="slot-ind ind-${cls}"></div>
+      <div class="slot-time">${slot.l}</div>
+      <div class="slot-body">
+        <div class="slot-names">${nurses.length>0?nurses.join("、"):'<span class="extra">无人在岗</span>'}${headHtml}${lt}${pt}${lunchNote}</div>
+        <div class="cap-tag cap-${cls}">${nc>0?"可约 "+nc+"个":"无人"}</div>
+      </div>`;
+    nEl.appendChild(item);
+  });
+
+  const tSchedEl=document.getElementById("t-sched"); tSchedEl.innerHTML="";
+  Object.entries(sched).forEach(([name,shift])=>{
+    const b=document.createElement("div"); b.className="t-badge";
+    b.innerHTML=`<span class="t-badge-name">${name}</span><span class="t-badge-shift">${shift}</span><span class="t-badge-time">${T_LABEL[shift]||""}</span>`;
+    tSchedEl.appendChild(b);
+  });
+
+  const tEl=document.getElementById("t-slots"); tEl.innerHTML="";
+  T_SLOTS.forEach(slot=>{
+    const present=getTAtSlot(sched,slot.s);
+    const nc=present.length; const cls=capClass(nc);
+    const isCur=curH>=slot.s&&curH<slot.s+1;
+    const arriving=Object.entries(sched).filter(([,sh])=>{
+      const def=DB.tShiftDef[sh]||DEFAULT_T_SHIFTS[sh];
+      return def&&def.start===slot.s;
+    }).map(([n])=>n);
+    const item=document.createElement("div");
+    item.className="slot-item"+(isCur?" current":"");
+    item.innerHTML=`
+      <div class="slot-ind ind-${cls}"></div>
+      <div class="slot-time">${slot.l}</div>
+      <div class="slot-body">
+        <div class="slot-names">${nc>0?present.map(t=>t.name).join("、"):'<span class="extra">无人在岗</span>'}${arriving.length>0?`<span class="arriving-note"> ↑ ${arriving.join("、")}到岗</span>`:""}</div>
+        <div class="cap-tag cap-${cls}">${nc>0?"可约 "+nc+"个":"无人"}</div>
+      </div>`;
+    tEl.appendChild(item);
+  });
+
+  const docEl=document.getElementById("doc-list"); docEl.innerHTML="";
+  const docData = DB.doctors[ym] || {};
+  Object.entries(docData).forEach(([name,days])=>{
+    const on=days[day]===1;
+    const tag=document.createElement("div");
+    tag.className="doc-tag "+(on?"doc-on":"doc-off");
+    tag.innerHTML=`<div class="doc-dot ${on?"dot-on":"dot-off"}"></div>${name}`;
+    docEl.appendChild(tag);
+  });
+}
+
+/* ══════════════════════════════════════════
+   初始化
+══════════════════════════════════════════ */
+function updatePill(){
+  const n=new Date(),h=n.getHours(),m=n.getMinutes();
+  const pad=x=>String(x).padStart(2,"0");
+  document.getElementById("now-pill").textContent=`现在 ${pad(h)}:${pad(m)}  ${h>=9&&h<21?"营业中":"营业时间外"}`;
+}
+
+// 尝试从 localStorage 读取缓存
+function loadCache() {
+  try {
+    const raw = localStorage.getItem("kanban_db");
+    if (!raw) return false;
+    const cached = JSON.parse(raw);
+    if (!cached.loaded) return false;
+    Object.assign(DB, cached);
+    DB.lastSync = cached.lastSync ? new Date(cached.lastSync) : null;
+    setSyncStatus("缓存数据 " + (DB.lastSync?formatTime(DB.lastSync):""), "#c8956a");
+    return true;
+  } catch(e) { return false; }
+}
+
+async function init() {
+  updatePill();
+  setInterval(updatePill, 30000);
+  const now = new Date();
+  currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  currentDay = now.getDate();
+  document.getElementById("month-sel").innerHTML = `<option value="${currentMonth}">${now.getFullYear()}年${now.getMonth()+1}月</option>`;
+
+  const hasCached = loadCache();
+  if (hasCached) {
+    buildMonthOptions();
+    buildDaySelect();
+    renderMonth();
+  }
+  // 无论是否有缓存，都尝试从飞书同步最新数据
+  await syncAll();
+  buildDaySelect();
+}
+
+init();
+</script>
+</body>
+</html>
