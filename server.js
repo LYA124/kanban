@@ -73,7 +73,7 @@ function tv(v) {
 
 function parseYM(raw) {
   if (!raw) return null;
-  const s = String(raw).replace(/[\u2014\u2013]/g, '-');
+  const s = String(raw).replace(/[—–]/g, '-');
   const m = s.match(/(\d{4})-(\d{1,2})/);
   if (!m) return null;
   return { year: parseInt(m[1]), month: parseInt(m[2]) };
@@ -84,34 +84,34 @@ function p2(n) { return String(n).padStart(2, '0'); }
 function parseMonthData(nurseRecs, beautyRecs, docRecs, year, month) {
   const daysInMon = new Date(year, month, 0).getDate();
   const nurseByDate = {}, beautyByDate = {}, doctorByDate = {};
-  const bKeys = ['\u65e9\u73ed','\u65e9\u4e2d\u73ed','\u4e2d\u73ed','\u665a\u73ed'];
+  const bKeys = ['早班','早中班','中班','晚班'];
 
   nurseRecs.forEach(function(rec) {
     const f = rec.fields;
-    const ym = parseYM(tv(f['\u5e74\u6708']));
+    const ym = parseYM(tv(f['年月']));
     if (!ym || ym.year !== year || ym.month !== month) return;
-    const name = tv(f['\u59d3\u540d']);
+    const name = tv(f['姓名']);
     if (!name || name === '/') return;
-    const isHead = (tv(f['\u89d2\u8272']) || '').includes('\u62a4\u58eb\u957f');
+    const isHead = (tv(f['角色']) || '').includes('护士长');
     for (let day = 1; day <= daysInMon; day++) {
-      const val = tv(f[day + '\u53f7']);
-      if (!val || val === '\u4f11') continue;
+      const val = tv(f[day + '号']);
+      if (!val || val === '休') continue;
       const ds = year + '-' + p2(month) + '-' + p2(day);
       if (!nurseByDate[ds]) nurseByDate[ds] = { early: [], late: [] };
-      if (val === '\u65e9') nurseByDate[ds].early.push({ name: name, isHead: isHead });
-      else if (val === '\u665a') nurseByDate[ds].late.push({ name: name, isHead: isHead });
+      if (val === '早') nurseByDate[ds].early.push({ name: name, isHead: isHead });
+      else if (val === '晚') nurseByDate[ds].late.push({ name: name, isHead: isHead });
     }
   });
 
   beautyRecs.forEach(function(rec) {
     const f = rec.fields;
-    const ym = parseYM(tv(f['\u5e74\u6708']));
+    const ym = parseYM(tv(f['年月']));
     if (!ym || ym.year !== year || ym.month !== month) return;
-    const name = tv(f['\u59d3\u540d']);
+    const name = tv(f['姓名']);
     if (!name || name === '/') return;
     for (let day = 1; day <= daysInMon; day++) {
-      const val = tv(f[day + '\u53f7']);
-      if (!val || val === '\u4f11') continue;
+      const val = tv(f[day + '号']);
+      if (!val || val === '休') continue;
       const ds = year + '-' + p2(month) + '-' + p2(day);
       if (!beautyByDate[ds]) {
         beautyByDate[ds] = {};
@@ -124,13 +124,13 @@ function parseMonthData(nurseRecs, beautyRecs, docRecs, year, month) {
 
   docRecs.forEach(function(rec) {
     const f = rec.fields;
-    const ym = parseYM(tv(f['\u5e74\u6708']));
+    const ym = parseYM(tv(f['年月']));
     if (!ym || ym.year !== year || ym.month !== month) return;
-    const name = tv(f['\u59d3\u540d']);
+    const name = tv(f['姓名']);
     if (!name || name === '/') return;
     for (let day = 1; day <= daysInMon; day++) {
-      const val = tv(f[day + '\u53f7']);
-      if (val !== '\u51fa\u8bca') continue;
+      const val = tv(f[day + '号']);
+      if (val !== '出诊') continue;
       const ds = year + '-' + p2(month) + '-' + p2(day);
       if (!doctorByDate[ds]) doctorByDate[ds] = [];
       doctorByDate[ds].push(name);
@@ -151,7 +151,7 @@ const HTML = "<!DOCTYPE html>\n" +
 "<head>\n" +
 "<meta charset=\"UTF-8\">\n" +
 "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n" +
-"<title>\u676d\u5dde\u4e2d\u745e \u00b7 \u6392\u73ed\u770b\u677f</title>\n" +
+"<title>杭州中瑞 · 排班看板</title>\n" +
 "<link href=\"https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap\" rel=\"stylesheet\">\n" +
 "<style>\n" +
 ":root{--bg:#f4f6f9;--sf:#fff;--s2:#f0f2f6;--s3:#e8ebf2;--bd:#e2e6ed;\n" +
@@ -198,7 +198,8 @@ const HTML = "<!DOCTYPE html>\n" +
 ".bb{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);color:var(--t2);cursor:pointer;font-size:12px;transition:all .15s;font-family:\"Noto Sans SC\",sans-serif;box-shadow:var(--sh)}\n" +
 ".bb:hover{border-color:var(--ac);color:var(--ac)}\n" +
 ".dtitle{font-size:19px;font-weight:700}.dsub{font-size:11px;color:var(--t2);margin-top:2px}\n" +
-".sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}\n" +
+".sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}\n" +
+".sg-doc{margin-bottom:14px}\n" +
 ".sc{background:var(--sf);border:1px solid var(--bd);border-radius:11px;padding:15px;box-shadow:var(--sh)}\n" +
 ".st{font-size:10px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;font-weight:700}\n" +
 ".sn{font-family:\"DM Mono\",monospace;font-size:26px;font-weight:700;line-height:1;margin-bottom:3px}\n" +
@@ -248,32 +249,32 @@ const HTML = "<!DOCTYPE html>\n" +
 "</style>\n" +
 "</head>\n" +
 "<body>\n" +
-"<div class=\"lo\" id=\"LO\"><div class=\"lsp\"></div><div class=\"ltxt\" id=\"LT\">\u6b63\u5728\u52a0\u8f7d...</div></div>\n" +
+"<div class=\"lo\" id=\"LO\"><div class=\"lsp\"></div><div class=\"ltxt\" id=\"LT\">正在加载...</div></div>\n" +
 "<div class=\"toast\" id=\"toast\"></div>\n" +
 "<div class=\"tb\">\n" +
-"  <div class=\"logo\">\u676d\u5dde\u4e2d\u745e \u00b7 \u6392\u73ed\u770b\u677f</div>\n" +
+"  <div class=\"logo\">杭州中瑞 · 排班看板</div>\n" +
 "  <div class=\"sep\"></div>\n" +
 "  <div class=\"mnav\">\n" +
-"    <button onclick=\"prevM()\">\u2039</button>\n" +
+"    <button onclick=\"prevM()\">‹</button>\n" +
 "    <div class=\"mlbl\" id=\"ML\"></div>\n" +
-"    <button onclick=\"nextM()\">\u203a</button>\n" +
+"    <button onclick=\"nextM()\">›</button>\n" +
 "  </div>\n" +
 "  <div class=\"tr\">\n" +
 "    <div class=\"leg\">\n" +
-"      <div class=\"li\"><div class=\"ld\" style=\"background:var(--nc)\"></div>\u62a4\u58eb</div>\n" +
-"      <div class=\"li\"><div class=\"ld\" style=\"background:var(--bc)\"></div>\u7f8e\u7597\u5e08</div>\n" +
-"      <div class=\"li\"><div class=\"ld\" style=\"background:var(--dc)\"></div>\u533b\u751f</div>\n" +
+"      <div class=\"li\"><div class=\"ld\" style=\"background:var(--nc)\"></div>护士</div>\n" +
+"      <div class=\"li\"><div class=\"ld\" style=\"background:var(--bc)\"></div>美疗师</div>\n" +
+"      <div class=\"li\"><div class=\"ld\" style=\"background:var(--dc)\"></div>医生</div>\n" +
 "    </div>\n" +
 "    <div class=\"sep\"></div>\n" +
-"    <span class=\"cb er\" id=\"CB\">\u672a\u8fde\u63a5</span>\n" +
-"    <button class=\"ib spin\" id=\"RB\" onclick=\"doRefresh()\">\u21bb</button>\n" +
+"    <span class=\"cb er\" id=\"CB\">未连接</span>\n" +
+"    <button class=\"ib spin\" id=\"RB\" onclick=\"doRefresh()\">↻</button>\n" +
 "  </div>\n" +
 "</div>\n" +
 "<div class=\"pg on\" id=\"pg-cal\"><div class=\"cw\"><div class=\"cg\" id=\"CG\"></div></div></div>\n" +
 "<div class=\"pg\" id=\"pg-day\">\n" +
 "  <div class=\"dw\">\n" +
 "    <div class=\"dhdr\">\n" +
-"      <button class=\"bb\" onclick=\"goBack()\">\u2190 \u8fd4\u56de\u65e5\u5386</button>\n" +
+"      <button class=\"bb\" onclick=\"goBack()\">← 返回日历</button>\n" +
 "      <div><div class=\"dtitle\" id=\"DT\"></div><div class=\"dsub\" id=\"DS\"></div></div>\n" +
 "    </div>\n" +
 "    <div class=\"sg\" id=\"SG\"></div>\n" +
@@ -282,7 +283,7 @@ const HTML = "<!DOCTYPE html>\n" +
 "  </div>\n" +
 "</div>\n" +
 "<script>\n" +
-"var WD = [\"\u65e5\",\"\u4e00\",\"\u4e8c\",\"\u4e09\",\"\u56db\",\"\u4e94\",\"\u516d\"];\n" +
+"var WD = [\"日\",\"一\",\"二\",\"三\",\"四\",\"五\",\"六\"];\n" +
 "var CY = new Date().getFullYear();\n" +
 "var CM = new Date().getMonth();\n" +
 "var CACHE = {};\n" +
@@ -333,7 +334,7 @@ const HTML = "<!DOCTYPE html>\n" +
 "  var data=await loadMonth(CY,CM);\n" +
 "  var nbd=data.nurseByDate,bbd=data.beautyByDate,dbd=data.doctorByDate,dim=data.daysInMon;\n" +
 "  var g=el(\"CG\"); g.innerHTML=\"\";\n" +
-"  [\"\u65e5\",\"\u4e00\",\"\u4e8c\",\"\u4e09\",\"\u56db\",\"\u4e94\",\"\u516d\"].forEach(function(d){ap(g,mk(\"div\",\"ch\",d));});\n" +
+"  [\"日\",\"一\",\"二\",\"三\",\"四\",\"五\",\"六\"].forEach(function(d){ap(g,mk(\"div\",\"ch\",d));});\n" +
 "  var fd=new Date(CY,CM,1).getDay();\n" +
 "  var today=new Date();\n" +
 "  var ts=fmtD(today.getFullYear(),today.getMonth()+1,today.getDate());\n" +
@@ -350,25 +351,25 @@ const HTML = "<!DOCTYPE html>\n" +
 "      var ec=(ns.early||[]).filter(function(n){return !n.isHead;}).length;\n" +
 "      var lc=(ns.late||[]).filter(function(n){return !n.isHead;}).length;\n" +
 "      var hc=(ns.early||[]).filter(function(n){return n.isHead;}).length+(ns.late||[]).filter(function(n){return n.isHead;}).length;\n" +
-"      ap(c,mk(\"div\",\"cl\",\"\u62a4\u58eb\"));\n" +
+"      ap(c,mk(\"div\",\"cl\",\"护士\"));\n" +
 "      var rn=mk(\"div\",\"cr\");\n" +
-"      if(ec){var px=mk(\"span\",\"cp pn\",\"\u65e9 \"+ec);ap(rn,px);}\n" +
-"      if(lc){var px=mk(\"span\",\"cp pn\",\"\u665a \"+lc);ap(rn,px);}\n" +
-"      if(hc){var px=mk(\"span\",\"cp ph\",\"\u957f \"+hc);ap(rn,px);}\n" +
+"      if(ec){var px=mk(\"span\",\"cp pn\",\"早 \"+ec);ap(rn,px);}\n" +
+"      if(lc){var px=mk(\"span\",\"cp pn\",\"晚 \"+lc);ap(rn,px);}\n" +
+"      if(hc){var px=mk(\"span\",\"cp ph\",\"长 \"+hc);ap(rn,px);}\n" +
 "      ap(c,rn);\n" +
 "    }\n" +
 "    if(bs){\n" +
 "      var tot=Object.values(bs).reduce(function(a,b){return a+b.length;},0);\n" +
 "      if(tot){\n" +
-"        ap(c,mk(\"div\",\"cl\",\"\u7f8e\u7597\"));\n" +
+"        ap(c,mk(\"div\",\"cl\",\"美疗\"));\n" +
 "        var rb=mk(\"div\",\"cr\");\n" +
-"        [[\"\u65e9\u73ed\",\"\u65e9\"],[\"\u65e9\u4e2d\u73ed\",\"\u65e9\u4e2d\"],[\"\u4e2d\u73ed\",\"\u4e2d\"],[\"\u665a\u73ed\",\"\u665a\"]].forEach(function(x){\n" +
+"        [[\"早班\",\"早\"],[\"早中班\",\"早中\"],[\"中班\",\"中\"],[\"晚班\",\"晚\"]].forEach(function(x){\n" +
 "          if(bs[x[0]]&&bs[x[0]].length) ap(rb,mk(\"span\",\"cp pb\",x[1]+\" \"+bs[x[0]].length));\n" +
 "        });\n" +
 "        ap(c,rb);\n" +
 "      }\n" +
 "    }\n" +
-"    if(docs.length){var rd=mk(\"div\",\"cr\");ap(rd,mk(\"span\",\"cp pd\",\"\u533b \"+docs.length));ap(c,rd);}\n" +
+"    if(docs.length){var rd=mk(\"div\",\"cr\");ap(rd,mk(\"span\",\"cp pd\",\"医 \"+docs.length));ap(c,rd);}\n" +
 "    ap(g,c);\n" +
 "  }\n" +
 "  setLD(false);\n" +
@@ -379,10 +380,10 @@ const HTML = "<!DOCTYPE html>\n" +
 "  var nbd=data.nurseByDate,bbd=data.beautyByDate,dbd=data.doctorByDate;\n" +
 "  var d=new Date(ds+\"T00:00:00\");\n" +
 "  var ns=nbd[ds]||{early:[],late:[]};\n" +
-"  var bs=bbd[ds]||{\"\u65e9\u73ed\":[],\"\u65e9\u4e2d\u73ed\":[],\"\u4e2d\u73ed\":[],\"\u665a\u73ed\":[]};\n" +
+"  var bs=bbd[ds]||{\"早班\":[],\"早中班\":[],\"中班\":[],\"晚班\":[]};\n" +
 "  var docs=dbd[ds]||[];\n" +
-"  el(\"DT\").textContent=(d.getMonth()+1)+\"\u6708\"+d.getDate()+\"\u65e5 \u661f\u671f\"+WD[d.getDay()];\n" +
-"  el(\"DS\").textContent=\"\u8425\u4e1a\u65f6\u6bb5 10:00 - 20:00 \u00b7 \u6bcf30\u5206\u949f\u4e00\u6863\";\n" +
+"  el(\"DT\").textContent=(d.getMonth()+1)+\"月\"+d.getDate()+\"日 星期\"+WD[d.getDay()];\n" +
+"  el(\"DS\").textContent=\"营业时段 10:00 - 20:00 · 每30分钟一档\";\n" +
 "  var allN=(ns.early||[]).concat(ns.late||[]);\n" +
 "  var bookN=allN.filter(function(n){return !n.isHead;});\n" +
 "  var headN=allN.filter(function(n){return n.isHead;});\n" +
@@ -390,7 +391,6 @@ const HTML = "<!DOCTYPE html>\n" +
 "  var sg=el(\"SG\"); sg.innerHTML=\"\";\n" +
 "  ap(sg,makeNurseCard(ns,allN,bookN,headN));\n" +
 "  ap(sg,makeBeautyCard(bs,allB));\n" +
-"  ap(sg,makeDoctorCard(docs));\n" +
 "  renderSlots(ns);\n" +
 "  renderDoctorSection(docs);\n" +
 "  el(\"pg-cal\").classList.remove(\"on\");\n" +
@@ -400,24 +400,24 @@ const HTML = "<!DOCTYPE html>\n" +
 "\n" +
 "function makeNurseCard(ns,allN,bookN,headN){\n" +
 "  var c=mk(\"div\",\"sc\");\n" +
-"  ap(c,mk(\"div\",\"st\",\"\u62a4\u58eb\u5728\u5c97\"));\n" +
+"  ap(c,mk(\"div\",\"st\",\"护士在岗\"));\n" +
 "  var sn=mk(\"div\",\"sn n\",String(allN.length));\n" +
-"  ap(sn,mk(\"span\",\"su\",\" \u4eba\"));\n" +
+"  ap(sn,mk(\"span\",\"su\",\" 人\"));\n" +
 "  ap(c,sn);\n" +
-"  ap(c,mk(\"div\",\"snote\",\"\u53c2\u4e0e\u9884\u7ea6 \"+bookN.length+\" \u4eba \u00b7 \u62a4\u58eb\u957f \"+headN.length+\" \u4eba\uff08\u4ec5\u5c55\u793a\uff09\"));\n" +
-"  ap(c,makeShiftBlock(ns.early,\"\u65e9\u73ed\",\"se\"));\n" +
-"  ap(c,makeShiftBlock(ns.late,\"\u665a\u73ed\",\"sl\"));\n" +
+"  ap(c,mk(\"div\",\"snote\",\"参与预约 \"+bookN.length+\" 人 · 护士长 \"+headN.length+\" 人（仅展示）\"));\n" +
+"  ap(c,makeShiftBlock(ns.early,\"早班\",\"se\"));\n" +
+"  ap(c,makeShiftBlock(ns.late,\"晚班\",\"sl\"));\n" +
 "  return c;\n" +
 "}\n" +
 "\n" +
 "function makeBeautyCard(bs,allB){\n" +
 "  var c=mk(\"div\",\"sc\");\n" +
-"  ap(c,mk(\"div\",\"st\",\"\u7f8e\u7597\u5e08\u5728\u5c97\"));\n" +
+"  ap(c,mk(\"div\",\"st\",\"美疗师在岗\"));\n" +
 "  var sn=mk(\"div\",\"sn b\",String(allB.length));\n" +
-"  ap(sn,mk(\"span\",\"su\",\" \u4eba\"));\n" +
+"  ap(sn,mk(\"span\",\"su\",\" 人\"));\n" +
 "  ap(c,sn);\n" +
-"  ap(c,mk(\"div\",\"snote\",\"\u5168\u5458\u53c2\u4e0e\u9879\u76ee\u9884\u7ea6\u6392\u73ed\"));\n" +
-"  var cm={\"\u65e9\u73ed\":\"se\",\"\u65e9\u4e2d\u73ed\":\"sm\",\"\u4e2d\u73ed\":\"sml\",\"\u665a\u73ed\":\"sl\"};\n" +
+"  ap(c,mk(\"div\",\"snote\",\"全员参与项目预约排班\"));\n" +
+"  var cm={\"早班\":\"se\",\"早中班\":\"sm\",\"中班\":\"sml\",\"晚班\":\"sl\"};\n" +
 "  Object.entries(bs).forEach(function(e){\n" +
 "    if(e[1].length) ap(c,makeShiftBlock(e[1],e[0],cm[e[0]]||\"se\"));\n" +
 "  });\n" +
@@ -426,15 +426,15 @@ const HTML = "<!DOCTYPE html>\n" +
 "\n" +
 "function makeDoctorCard(docs){\n" +
 "  var c=mk(\"div\",\"sc\");\n" +
-"  ap(c,mk(\"div\",\"st\",\"\u533b\u751f\u51fa\u8bca\"));\n" +
+"  ap(c,mk(\"div\",\"st\",\"医生出诊\"));\n" +
 "  var sn=mk(\"div\",\"sn d\",String(docs.length));\n" +
-"  ap(sn,mk(\"span\",\"su\",\" \u4f4d\"));\n" +
+"  ap(sn,mk(\"span\",\"su\",\" 位\"));\n" +
 "  ap(c,sn);\n" +
-"  ap(c,mk(\"div\",\"snote\",\"\u4ec5\u4f9b\u5c55\u793a\uff0c\u4e0d\u53c2\u4e0e\u9884\u7ea6\u5360\u4f4d\"));\n" +
+"  ap(c,mk(\"div\",\"snote\",\"仅供展示，不参与预约占位\"));\n" +
 "  if(docs.length){\n" +
-"    docs.forEach(function(n){ap(c,mk(\"div\",\"snote\",\"\u00b7 \"+n));});\n" +
+"    docs.forEach(function(n){ap(c,mk(\"div\",\"snote\",\"· \"+n));});\n" +
 "  } else {\n" +
-"    ap(c,mk(\"div\",\"snote\",\"\u4eca\u65e5\u65e0\u533b\u751f\u51fa\u8bca\"));\n" +
+"    ap(c,mk(\"div\",\"snote\",\"今日无医生出诊\"));\n" +
 "  }\n" +
 "  return c;\n" +
 "}\n" +
@@ -455,19 +455,19 @@ const HTML = "<!DOCTYPE html>\n" +
 "  var slots=buildSlots(ns);\n" +
 "  var mc=Math.max.apply(null,slots.map(function(s){return s.cap;}).concat([1]));\n" +
 "  var box=el(\"SL\"); box.innerHTML=\"\";\n" +
-"  ap(box,mk(\"div\",\"slhdr\",\"\u9884\u7ea6\u65f6\u6bb5\u5bb9\u91cf\uff0830\u5206\u949f/\u6863\uff09\"));\n" +
-"  ap(box,mk(\"div\",\"slhint\",\"\u62a4\u58eb\u65e9\u73ed 09:30-18:30\uff0c\u665a\u73ed 11:30-20:30\u3002\u5bb9\u91cf=\u5f53\u524d\u65f6\u6bb5\u5728\u5c97\u62a4\u58eb\u6570\uff08\u62a4\u58eb\u957f\u4e0d\u5360\u540d\u989d\uff09\u3002\u5348\u4f11 12:00-14:00 \u81ea\u52a8-1\u3002\"));\n" +
+"  ap(box,mk(\"div\",\"slhdr\",\"预约时段容量（30分钟/档）\"));\n" +
+"  ap(box,mk(\"div\",\"slhint\",\"护士早班 09:30-18:30，晚班 11:30-20:30。容量=当前时段在岗护士数（护士长不占名额）。午休 12:00-14:00 自动-1。\"));\n" +
 "  var hdr=mk(\"div\",\"slth\");\n" +
-"  [\"\u65f6\u95f4\u6bb5\",\"\u5bb9\u91cf\u6bd4\u4f8b\",\"\u540d\u989d\",\"\u72b6\u6001\"].forEach(function(t){ap(hdr,mk(\"div\",\"\",t));});\n" +
+"  [\"时间段\",\"容量比例\",\"名额\",\"状态\"].forEach(function(t){ap(hdr,mk(\"div\",\"\",t));});\n" +
 "  ap(box,hdr);\n" +
 "  slots.forEach(function(s){\n" +
 "    var pct=mc>0?Math.round(s.cap/mc*100):0;\n" +
 "    var bc=s.cap===0?\"bn\":pct>=60?\"ba\":\"bm\";\n" +
 "    var sc=s.cap===0?\"bno\":pct>=60?\"bav\":\"bli\";\n" +
-"    var sl2=s.cap===0?\"\u6682\u505c\u9884\u7ea6\":pct>=60?\"\u53ef\u9884\u7ea6\":\"\u540d\u989d\u7d27\u5f20\";\n" +
+"    var sl2=s.cap===0?\"暂停预约\":pct>=60?\"可预约\":\"名额紧张\";\n" +
 "    var row=mk(\"div\",\"slrow\"+(s.cap===0?\" zc\":\"\"));\n" +
 "    var timeDiv=mk(\"div\",\"slt\",s.tStr);\n" +
-"    if(s.isLunch) ap(timeDiv,mk(\"span\",\"ltag\",\"\u5348\u4f11\"));\n" +
+"    if(s.isLunch) ap(timeDiv,mk(\"span\",\"ltag\",\"午休\"));\n" +
 "    ap(row,timeDiv);\n" +
 "    var bw=mk(\"div\",\"bw\"); var bf=mk(\"div\",\"bf \"+bc); bf.style.width=pct+\"%\"; ap(bw,bf); ap(row,bw);\n" +
 "    ap(row,mk(\"div\",\"slcap\",String(s.cap)));\n" +
@@ -478,14 +478,14 @@ const HTML = "<!DOCTYPE html>\n" +
 "\n" +
 "function renderDoctorSection(docs){\n" +
 "  var box=el(\"DB\"); box.innerHTML=\"\";\n" +
-"  ap(box,mk(\"div\",\"dochdr\",\"\u533b\u751f\u51fa\u8bca\uff08\u4ec5\u5c55\u793a\uff0c\u4e0d\u5360\u9884\u7ea6\u540d\u989d\uff09\"));\n" +
-"  if(!docs.length){ap(box,mk(\"div\",\"nodata\",\"\u4eca\u65e5\u6682\u65e0\u533b\u751f\u51fa\u8bca\u5b89\u6392\"));return;}\n" +
+"  ap(box,mk(\"div\",\"dochdr\",\"医生出诊（仅展示，不占预约名额）\"));\n" +
+"  if(!docs.length){ap(box,mk(\"div\",\"nodata\",\"今日暂无医生出诊安排\"));return;}\n" +
 "  docs.forEach(function(name){\n" +
 "    var row=mk(\"div\",\"docrow\");\n" +
 "    ap(row,mk(\"div\",\"dav\",name.slice(-1)));\n" +
 "    var info=mk(\"div\",\"\");\n" +
 "    ap(info,mk(\"div\",\"dname\",name));\n" +
-"    ap(info,mk(\"span\",\"donduty\",\"\u4eca\u65e5\u51fa\u8bca\"));\n" +
+"    ap(info,mk(\"span\",\"donduty\",\"今日出诊\"));\n" +
 "    ap(row,info);\n" +
 "    ap(box,row);\n" +
 "  });\n" +
@@ -501,11 +501,11 @@ const HTML = "<!DOCTYPE html>\n" +
 "  var rb=el(\"RB\"); rb.classList.add(\"spin\");\n" +
 "  delete CACHE[CY+\"-\"+CM];\n" +
 "  try{await renderCal();setBadge(true);}\n" +
-"  catch(e){setBadge(false);showToast(\"\u52a0\u8f7d\u5931\u8d25: \"+(e.message||\"\u672a\u77e5\u9519\u8bef\"));setLD(false);}\n" +
+"  catch(e){setBadge(false);showToast(\"加载失败: \"+(e.message||\"未知错误\"));setLD(false);}\n" +
 "  rb.classList.remove(\"spin\");\n" +
 "}\n" +
 "function setLD(s){el(\"LO\").style.display=s?\"flex\":\"none\";}\n" +
-"function setBadge(ok){var e=el(\"CB\");e.textContent=ok?\"\u5df2\u8fde\u63a5\":\"\u8fde\u63a5\u5931\u8d25\";e.className=\"cb \"+(ok?\"ok\":\"er\");}\n" +
+"function setBadge(ok){var e=el(\"CB\");e.textContent=ok?\"已连接\":\"连接失败\";e.className=\"cb \"+(ok?\"ok\":\"er\");}\n" +
 "function showToast(msg){var e=el(\"toast\");e.textContent=msg;e.style.display=\"block\";clearTimeout(e._t);e._t=setTimeout(function(){e.style.display=\"none\";},5000);}\n" +
 "</script>\n" +
 "</body>\n" +
