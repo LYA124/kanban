@@ -7,9 +7,9 @@ const APP_TOKEN  = process.env.FEISHU_APP_TOKEN  || 'PPSkb00lkaxMnusHZAJcFBainAg
 const PORT       = process.env.PORT || 3000;
 
 const TABLES = {
-  nurse:  'tbl5TJfpAgRxJ1W6',
-  beauty: 'tblnHRQVvEvU9L9U',
-  doctor: 'tbl4eYxLA06rpNf0',
+  nurse:  'tblJELs9hSwO9lAD',
+  beauty: 'tbl1Vnt0bTEQQo2J',
+  doctor: 'tbl3sb339H2H0mRS',
 };
 
 let tokenCache = { token: null, exp: 0 };
