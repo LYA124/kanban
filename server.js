@@ -522,6 +522,21 @@ const server = http.createServer(async function(req, res) {
     return;
   }
 
+
+  // 调试接口：返回原始字段
+  if (url.pathname === '/api/debug') {
+    try {
+      const recs = await fetchAll(TABLES.nurse);
+      const first3 = recs.slice(0, 3).map(function(r) { return r.fields; });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(first3, null, 2));
+    } catch(e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
   if (url.pathname === '/api/month') {
     const year  = parseInt(url.searchParams.get('year'))  || new Date().getFullYear();
     const month = parseInt(url.searchParams.get('month')) || (new Date().getMonth() + 1);
