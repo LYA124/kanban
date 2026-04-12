@@ -1,0 +1,12 @@
+{
+  "name": "zr-scheduler",
+  "version": "1.0.0",
+  "description": "杭州中瑞排班看板",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
