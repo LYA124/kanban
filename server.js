@@ -517,6 +517,6 @@ const server = http.createServer(async function(req, res) {
   res.writeHead(404); res.end('Not found');
 });
 
-server.listen(PORT, function() {
+server.listen(PORT, '0.0.0.0', function() {
   console.log('排班看板已启动 port=' + PORT);
 });
